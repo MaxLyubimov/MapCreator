@@ -1,7 +1,9 @@
 # MapCreator
-Tool for creating map that is used in the Apollo project
+This tool help to generate base_map.txt file which is the main component for map in the [Apollo](https://github.com/ApolloAuto/apollo) . We use prepared geotiff file our territory for map generation.  According to the file information there is a comparison of coordinates on the image with real coordinates. Accuracy of objects size depend on geotiff file. We use ``` gdalinfo ``` for information about geotiff file. 
+
+Information about our geotiff file
 ```
-Information about our geotiff 
+ 
 Coordinate System is:
 PROJCS["WGS 84 / UTM zone 39N",
     GEOGCS["WGS 84",
@@ -30,5 +32,8 @@ PROJCS["WGS 84 / UTM zone 39N",
 
 
 ```
+When we make map we use geographic coordinates of  left upper corner like a local center.  We implement the lanes, roads, stop signs and signals. The implementation of junctions works using lanes without borders. The relation of signal and stop signs with stop lanes sets by hand. Overlaps also set by hand.
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/muWFqz1OA2I" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+##### Process of map creation 
+[![](http://img.youtube.com/vi/muWFqz1OA2I/0.jpg)](http://www.youtube.com/watch?v=muWFqz1OA2I "Map making process")
