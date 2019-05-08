@@ -30,5 +30,5 @@ PROJCS["WGS 84 / UTM zone 39N",
 
 
 ```
-
-<iframe width="560" height="315" src="https://www.youtube.com/embed/muWFqz1OA2I" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+Process of creating map
+[![](http://img.youtube.com/vi/muWFqz1OA2I/0.jpg)](http://www.youtube.com/watch?v=muWFqz1OA2I "Map making process")
