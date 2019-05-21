@@ -500,7 +500,9 @@ class MapCreator(QMainWindow):
         self.type=self.OVERLAP
         self.addToolBar(Qt.LeftToolBarArea,self.ToolbarOverlap)
         self.ToolbarOverlap.setVisible(True)
-
+        self.ComboOverlapLanes.clear() 
+        self.ComboOverlapSignal.clear() 
+        self.ComboOverlapStopSign.clear() 
         self.addObjsToComboBox(self.ComboOverlapLanes,self.Lanes)
         self.addObjsToComboBox(self.ComboOverlapLanes,self.Junctions,isFirst=False)
         self.addObjsToComboBox(self.ComboOverlapSignal,self.Signals)

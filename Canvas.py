@@ -114,20 +114,26 @@ class Canvas(QWidget):
             if index is not None:
                 borderLeft=key.find("Left")
                 borderRight=key.find("Right")
+                lane=key.find("lane")
+                st=key.find("stoplane")
                 if borderLeft!=-1:
                     label=key[:borderLeft]
                     del self.shapes[label+"Left"]
                     del self.shapes[label]
+                    del self.shapes[label+"Right"]
                 elif borderRight!=-1:
                     label=key[:borderRight]
                     del self.shapes[label+"Right"]
                     del self.shapes[label]
-                elif shape.shape_type==shape.LANE:
+                    del self.shapes[label+"Left"]
+                elif lane!=-1 and st==-1:
                     del self.shapes[key+"Right"]
                     del self.shapes[key+"Left"]
-                key1=key
+                    del self.shapes[key]
+                else:
+                    del self.shapes[key]
                 break
-        del self.shapes[key1]
+ 
         self.draggableIndex=None
         self.draggablePoint=None
         self.update()

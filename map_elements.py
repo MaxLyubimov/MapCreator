@@ -495,6 +495,7 @@ class StopLane(RoadObject):
         self.stop_lane=self.stop_sign.stop_line.add()
         self.stop_sign.id.id = id 
         self.stop_sign.type=2
+        self._id=id
 
     def add_overlap(self, id):
         self.stop_sign.overlap_id.add().id = str(id)

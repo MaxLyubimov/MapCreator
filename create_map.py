@@ -193,6 +193,7 @@ class BaseMapGeneration():
 		
 			l = self.make_lanes(lanesxy, map, junction.id, False,junction.direction,int(junction.speed),None,None,None,float(junction.width),lanesxy_left,lanesxy_right,road)
 			road.add_lanes_to_section(junction.id)
+			self.addOverlaps(overlaps,l)
 			self.addRelations(relations,l)
 		for stopsign in stopsigns: 
 			st=StopLane(stopsign.id,map)

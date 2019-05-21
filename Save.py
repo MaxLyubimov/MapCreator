@@ -122,16 +122,21 @@ def SaveTxt(self,filename):
             continue
         for point in shape.points:
             obj.points.append([Decimal(point.x())*(self.resizeFactorWidth*Decimal(self.geotiffScale)),Decimal(point.y())*(self.resizeFactorHeight*Decimal(self.geotiffScale))])
-      
+    bufPoints=[]
     for obj in self.Overlaps:
 
         point=obj.pointOverlap
-        Lanepoints=self.findById(obj.laneOverlapId,self.Lanes).points
+        print(point)
+        Lanepoints=self.findById(obj.laneOverlapId,self.Lanes)
+        if Lanepoints is None:
+            Lanepoints=self.findById(obj.laneOverlapId,self.Junctions)
+        Lanepoints=Lanepoints.points
         pointMap=[Decimal(point.x())*(self.resizeFactorWidth*Decimal(self.geotiffScale)),Decimal(point.y())*(self.resizeFactorHeight*Decimal(self.geotiffScale))]
         Lanepoints.insert(1, pointMap)
         line = LineString(Lanepoints[:2])
         Lanepoints.remove(pointMap)
         dist = line.length
+        bufPoints.append(obj.pointOverlap)
         obj.pointOverlap=dist
     for obj in self.Signals:
         point=None
@@ -162,6 +167,9 @@ def SaveTxt(self,filename):
     gen=cr.BaseMapGeneration()
 
     gen.start(self.Lanes,self.Junctions,self.Relations,self.Neighbors,self.Overlaps,self.Signals,self.StopSigns,self.offsetX,self.offsetY,self.rotation)
+    for i in range(0,len(self.Overlaps)):
+        self.Overlaps[i].pointOverlap=bufPoints[i]
+
 
 
 
