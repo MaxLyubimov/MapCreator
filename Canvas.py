@@ -54,6 +54,7 @@ class Canvas(QWidget):
         self.currentImage=None
         self.epsilon=11
         self.Ruler=None
+        self.Preview=None
         self.visible = {}
         self.draggableIndex=None
         self.draggablePoint=None
@@ -75,14 +76,37 @@ class Canvas(QWidget):
         self.deletePoint = toolbar.addAction("Delete Point", self.DeletePointFunc)
         self.deleteLane = toolbar.addAction("Delete Object", self.DeleteLaneFunc)
         self.deleteStopSign=toolbar.addAction("Detele Stop sign",self.DeleteStopSignFunc)
+        self.AddFlag=toolbar.addAction("Add Flag",self.AddFlagFunc)
+        self.AddTurnLeft=toolbar.addAction("Add Turn Left",self.AddTurnLeftFunc)
+        self.AddTurnRight=toolbar.addAction("Add Turn Rught",self.AddTurnRightFunc)
         self.popMenu = QMenu(self)
         self.popMenu.addAction(self.deletePoint)
         self.popMenu.addAction(self.deleteLane)
         self.popMenu.addAction(self.deleteStopSign)
+        self.popMenu.addAction(self.AddFlag)
+        self.popMenu.addAction(self.AddTurnLeft)
+        self.popMenu.addAction(self.AddTurnRight)
         self.rightClickPos=-1
-       
+    
 
+    def AddTurnLeftFunc(self):
+        for key,shape in self.shapes.items():
+            index = shape.nearestVertex(self.rightClickPos, self.epsilon/self.scaleFactor)
+            if index is not None:
+                shape.turn=2
 
+    def AddTurnRightFunc(self):
+        for key,shape in self.shapes.items():
+            index = shape.nearestVertex(self.rightClickPos, self.epsilon/self.scaleFactor)
+            if index is not None:
+                shape.turn=3
+
+    def AddFlagFunc(self):
+        for key,shape in self.shapes.items():
+            index = shape.nearestVertex(self.rightClickPos, self.epsilon/self.scaleFactor)
+            if index is not None:
+                shape.LaneChange=False
+                
     def DeleteStopSignFunc(self):
         for key,shape in self.shapes.items():
             index = shape.nearestVertex(self.rightClickPos, self.epsilon/self.scaleFactor)
@@ -137,13 +161,30 @@ class Canvas(QWidget):
         self.draggableIndex=None
         self.draggablePoint=None
         self.update()
- 
+    def addPoints(self,shape):
+        isAdded=False
+        for i in range(0,len(shape.points)-1):
+            print(self.distance_between(shape.points[i],shape.points[i+1]))
+            if self.distance_between(shape.points[i],shape.points[i+1])>70:
+                x=(shape.points[i].x()+shape.points[i+1].x())/2
+                y=(shape.points[i].y()+shape.points[i+1].y())/2
+                newPoint=QPointF(x,y)
+                shape.points.insert(i+1,newPoint)
+                isAdded=True
+        if isAdded:
+            self.addPoints(shape)
 
-    def getBezierCurve (self, step):
-        arr=self.current.points
-        if step == None:
-            step = 5
-        step = 450
+      
+
+
+
+    def getBezierCurve (self,arr=None):
+        isPrew=True
+        if arr is None:
+            isPrew=False
+            arr=self.current.points
+      
+        step = 5
         res=[]
         res.append(self.current.points[0])
         step=int((float(step)/self.distance_between(arr[0],arr[2])))
@@ -161,9 +202,12 @@ class Canvas(QWidget):
                 res[-1].setX(res[-1].x()+arr[i].x() * b)
                 res[-1].setY(res[-1].y()+arr[i].y() * b)
         res.append(self.current.points[-1])
-        self.current.points=res
-        self.update()
-        return self.current.points
+        if not isPrew:
+            self.current.points=res
+            self.update()
+            return self.current.points
+        else:
+            return res
 
     def getBezierBasis(self,i, n, t):
         def f(n):
@@ -200,8 +244,8 @@ class Canvas(QWidget):
             secpoint=self.shapes[Id].points[-1]
             thirdpoint=self.shapes[Id].points[-2]
 
-        finalPointsX=newpoint.x()+(thirdpoint.x()-newpoint.x())*0.05
-        finalPointsY=newpoint.y()+(thirdpoint.y()-newpoint.y())*0.05
+        finalPointsX=newpoint.x()
+        finalPointsY=newpoint.y()
         newpointTwo=QPointF(finalPointsX,finalPointsY)
         if distance>150:
             return -1,-1
@@ -283,7 +327,7 @@ class Canvas(QWidget):
     def boundedMoveVertex(self, pos):
         index, shape = self.hVertex, self.hShape
         point = shape[index]
-        shiftPos = pos - point
+        shiftPos = (pos - point)
         shape.moveVertexBy(index, shiftPos)
       
     def convert(self, p, p2, distanceX,distanceY, use_first=True):
@@ -427,6 +471,9 @@ class Canvas(QWidget):
             #painter.setRenderHint(QPainter.HighQualityAntialiasing)
             #painter.setRenderHint(QPainter.SmoothPixmapTransform)
             # self.current.paint(painter) 
+        if self.Preview is not None:
+            self.Preview.paint(p)
+
         if self.Ruler is not None and len(self.Ruler.points)>0:
             self.Ruler.scale=self.scaleFactor
             if len(self.Ruler.points)==2:

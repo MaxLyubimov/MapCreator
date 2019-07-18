@@ -1,7 +1,7 @@
 from PyQt5.QtCore import QDir, Qt,QSize,QSettings,QRect,QEvent
 from PyQt5.QtGui import QImage, QPainter, QPalette, QPixmap, QPen,QIntValidator,QDoubleValidator
 from PyQt5.QtWidgets import (QAction, QApplication, QFileDialog,QLabel,QToolBar,QSpacerItem,
-        QMainWindow, QMenu, QMessageBox, QScrollArea, QSizePolicy,QVBoxLayout,QWidget,QFrame,QScrollBar,QHBoxLayout,QTextEdit,QLineEdit,QComboBox)
+        QMainWindow, QMenu,QCheckBox, QMessageBox, QScrollArea, QSizePolicy,QVBoxLayout,QWidget,QFrame,QScrollBar,QHBoxLayout,QTextEdit,QLineEdit,QComboBox)
 def CreateToolbars(self):
 
     Toolbar = QToolBar()
@@ -65,7 +65,10 @@ def CreateToolbars(self):
     self.ToolbarLane.addWidget(self.EditLaneWidth)
     self.ToolbarLane.addWidget(labelSpeed)
     self.ToolbarLane.addWidget(self.EditLaneSpeed)
-  
+    self.ComboLaneTurn = QComboBox(self)
+    self.ComboLaneTurn.addItems(["NO_TURN", "LEFT_TURN",
+                        "RIGHT_TURN", "U_TURN"])
+    self.ToolbarLane.addWidget( self.ComboLaneTurn)
     self.ToolbarLane.addAction(self.acceptRoad)
     self.ToolbarLane.setMovable(True)
 
@@ -80,18 +83,29 @@ def CreateToolbars(self):
     self.ToolbarLaneLeftRight.addWidget(labelRight)
     self.ToolbarLaneLeftRight.addWidget(self.ComboLaneBorderRight)
     self.ToolbarLaneLeftRight.addAction(self.createLeftRight)
-    
+
+   
+
+
     self.ComboLaneBorderLeft.currentIndexChanged.connect(self.leftChanged)
     self.ComboLaneBorderRight.currentIndexChanged.connect(self.rightChanged)
 
-    self.ToolbarJunction=QToolBar()
-    self.ToolbarJunction.addAction(self.getBezier)
-    self.ToolbarJunction.addAction(self.acceptjunction)
+
+
+
     
 
     self.ToolbarJunction=QToolBar()
     self.ToolbarJunction.addAction(self.getBezier)
     self.ToolbarJunction.addAction(self.acceptjunction)
+    self.ToolbarJunction.addAction(self.previewJunction)
+    self.ComboJunctionTurn = QComboBox(self)
+    self.ComboJunctionTurn.addItems(["NO_TURN", "LEFT_TURN",
+                        "RIGHT_TURN", "U_TURN"])
+    self.ToolbarJunction.addWidget( self.ComboJunctionTurn)
+    self.changelaneChk = QCheckBox("Lane Change")
+    self.changelaneChk.setChecked(False)
+    self.ToolbarJunction.addWidget(self.changelaneChk)
 
 
     self.ToolbarNeighbor=QToolBar()
@@ -127,15 +141,10 @@ def CreateToolbars(self):
     self.ToolbarNeighbor.addWidget(self.ComboNeighborForwardRight)
     self.ToolbarNeighbor.addWidget(labelNeighborReverseRight) 
     self.ToolbarNeighbor.addWidget(self.ComboNeighborReverseRight)
-
     self.ToolbarNeighbor.addAction(self.acceptNeighbor)
-
     self.ToolbarStopLane=QToolBar()
     self.ToolbarStopLane.addAction(self.acceptStopLane)
-
     self.ToolbarOverlap=QToolBar()
-
-
 
     self.ComboOverlapLanes = QComboBox(self)
     labelOverlapLane=QLabel()

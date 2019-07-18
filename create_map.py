@@ -64,13 +64,12 @@ class BaseMapGeneration():
 		elif (border=="DOTTED_YELLOW"):
 			return DOTTED_YELLOW
 		return SOLID_WHITE	
-
 	def createRoad(self,map,roadid):
 		road=Road(roadid,map)
 		road.add_section("2")
 		
 		return road
-	def make_lanes(self,points, map, id1,  border,direction,speed,borderleft,borderright,neighbors,width,leftborderPoint,rightBorderPoints,road):
+	def make_lanes(self,points, map, id1,  border,direction,speed,borderleft,borderright,neighbors,width,leftborderPoint,rightBorderPoints,turn,road):
 		lane = Lane(id1, map)
 		main_lane_x=[]
 		main_lane_y=[]
@@ -103,7 +102,7 @@ class BaseMapGeneration():
 			direction=map_lane_pb2.Lane.BACKWARD	
 		else:
 			direction=map_lane_pb2.Lane.BIDIRECTION
-		lane.add(mainPoints, speed, map_lane_pb2.Lane.NO_TURN, map_lane_pb2.Lane.CITY_DRIVING,direction,width,leftborderPoint,rightBorderPoints,0.1)
+		lane.add(mainPoints, speed, turn, map_lane_pb2.Lane.CITY_DRIVING,direction,width,leftborderPoint,rightBorderPoints,0.1)
 		road.add_road_boundary(leftPoints,map_road_pb2.BoundaryEdge.LEFT_BOUNDARY,1)
 		road.add_road_boundary(rightsPoints,map_road_pb2.BoundaryEdge.RIGHT_BOUNDARY,1)
 
@@ -162,14 +161,19 @@ class BaseMapGeneration():
 					lanesxy_right[i]=self.rotate(lanesxy_right[i][0],lanesxy_right[i][1],0,0,math.radians(rotateangle) )
 					lanesxy_right[i][1]+=y
 					lanesxy_right[i][0]+=x
-				l = self.make_lanes(lanesxy, map, lanes.id, True,lanes.direction,int(lanes.speed),lanes.idLeftBorder,lanes.idRightBorder,lanes.Neighbors,float(lanes.width),lanesxy_left,lanesxy_right,road)
+				l = self.make_lanes(lanesxy, map, lanes.id, True,lanes.direction,int(lanes.speed),lanes.idLeftBorder,lanes.idRightBorder,lanes.Neighbors,float(lanes.width),lanesxy_left,lanesxy_right,lanes.turn,road)
 				self.addRelations(relations,l)
 				self.addNeighbors(neighbors,l)
 				self.addOverlaps(overlaps,l)
 				road.add_lanes_to_section(lanes.id)			
+
 		for junction in junctions:
 			if junction.id is None:
 				continue
+			if junction.points is None:
+				continue
+			print(junction.id)
+			print(junction.points)
 			lanesxy = []
 			counter+=1
 			road=self.createRoad(map,"road_"+str(counter))
@@ -190,9 +194,11 @@ class BaseMapGeneration():
 				lanesxy_right[i]=self.rotate(lanesxy_right[i][0],lanesxy_right[i][1],0,0,math.radians(rotateangle) )
 				lanesxy_right[i][1]+=y
 				lanesxy_right[i][0]+=x
-		
-			l = self.make_lanes(lanesxy, map, junction.id, False,junction.direction,int(junction.speed),None,None,None,float(junction.width),lanesxy_left,lanesxy_right,road)
+	
+
+			l = self.make_lanes(lanesxy, map, junction.id, False,junction.direction,int(junction.speed),None,None,None,float(junction.width),lanesxy_left,lanesxy_right,junction.turn,road)
 			road.add_lanes_to_section(junction.id)
+		
 			self.addOverlaps(overlaps,l)
 			self.addRelations(relations,l)
 		for stopsign in stopsigns: 

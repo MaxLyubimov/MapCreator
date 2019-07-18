@@ -202,7 +202,8 @@ class MapCreator(QMainWindow):
         shapeRight=Shape()
         shapeRight.label="lane_"+last+"Right"
         shapeRight.shape_type=shapeRight.BORDER
-        self.Lanes.append(Lane("lane_"+last,None,None,None,None))
+        self.Lanes.append(Lane("lane_"+last,None,None,None,None,None))
+
         self.imageLabel.setDrawing(True)
         self.imageLabel.shapes[shape.label]=shape
         self.imageLabel.shapes[shapeLeft.label]=shapeLeft
@@ -231,10 +232,11 @@ class MapCreator(QMainWindow):
         self.removeToolBar(self.ToolbarLane)
         self.Lanes[-1].width=int(float(self.EditLaneWidth.text().replace(",",".")))
         self.Lanes[-1].speed=int(float(self.EditLaneSpeed.text().replace(",",".")))
+        self.Lanes[-1].turn=self.ComboLaneTurn.currentIndex()+1
         self.ToolbarLaneLeftRight.setVisible(True)
         self.addToolBar(Qt.LeftToolBarArea,self.ToolbarLaneLeftRight)
         self.imageLabel.current.shape_type=self.imageLabel.current.BORDER
-  
+        self.imageLabel.addPoints( self.imageLabel.current)
         self.imageLabel.createBorder( self.Lanes[-1].width)       
     def createLeftRightFunc(self):
         self.type=self.NOTYPE
@@ -275,12 +277,49 @@ class MapCreator(QMainWindow):
             self.Junctions[-1].borderLeft.append([Decimal(point.x())*(self.resizeFactorWidth*Decimal(self.geotiffScale)),Decimal(point.y())*(self.resizeFactorHeight*Decimal(self.geotiffScale))])
         for point in right:
             self.Junctions[-1].borderRight.append([Decimal(point.x())*(self.resizeFactorWidth*Decimal(self.geotiffScale)),Decimal(point.y())*(self.resizeFactorHeight*Decimal(self.geotiffScale))])
+        self.Junctions[-1].turn=self.ComboJunctionTurn.currentIndex()
         self.imageLabel.currentLeft=None
         self.imageLabel.currentRight=None
         self.imageLabel.current=None
+        if self.changelaneChk.isChecked():
+            self.Junctions[-1].isLaneChange=True
         self.removeToolBar(self.ToolbarJunction)
-        
+        self.changelaneChk.setChecked(False)
         self.ToolbarJunction.setVisible(False)
+
+    def previewJunctionFunc(self):
+        if len(self.imageLabel.current.points)<3:
+            self.CreateErrorWindow("Add three points","")
+            return 
+        pointmas=copy.deepcopy(self.imageLabel.current.points)
+        
+
+        bufArray=self.imageLabel.FindEdgeLanes(pointmas[0])
+
+        pointmas.insert(0,bufArray[0])
+        #self.imageLabel.current.points[1]=bufArray[2]
+        StartLane=self.imageLabel.shapes[bufArray[1]]
+        bufArray1=self.imageLabel.FindEdgeLanes(pointmas[3])
+        #self.imageLabel.current.points[3]=bufArray1[2]
+
+        FinishLane=self.imageLabel.shapes[bufArray1[1]]
+        if pointmas[0]==-1 or pointmas[2]==-1:
+           #self.imageLabel.current.points=bufPointmas
+           return
+
+        pointmas=self.imageLabel.getBezierCurve(pointmas) 
+        pointmas.pop(0)
+        #pointmas.append(bufArray1[0])
+        self.imageLabel.Preview=Shape()
+        self.imageLabel.Preview.label="preview"
+        self.imageLabel.Preview.points=pointmas
+        self.imageLabel.Preview.shape_type=self.imageLabel.Preview.PREVIEW
+        self.imageLabel.update()
+        
+
+
+
+
     def getBezierFunc(self):
         if len(self.imageLabel.current.points)<3:
             self.CreateErrorWindow("Add three points","")
@@ -298,12 +337,12 @@ class MapCreator(QMainWindow):
 
         FinishLane=self.imageLabel.shapes[bufArray1[1]]
         if pointmas[0]==-1 or pointmas[2]==-1:
-            self.imageLabel.current.points=bufPointmas
-            return
+           self.imageLabel.current.points=bufPointmas
+           return
 
-        pointmas=self.imageLabel.getBezierCurve(pointmas) 
+        pointmas=self.imageLabel.getBezierCurve() 
         pointmas.pop(0)
-        pointmas.append(bufArray1[0])
+        #pointmas.append(bufArray1[0])
   
         self.imageLabel.current.points=pointmas
         self.imageLabel.shapes[self.imageLabel.current.label].points=pointmas
@@ -315,8 +354,8 @@ class MapCreator(QMainWindow):
         relation1=Relation(self.Junctions[-1].id,lanefin.id)
         self.Relations.append(relation)
         self.Relations.append(relation1)
-
-
+        self.imageLabel.Preview=None
+        
     def findById(self,id, flist):
         for i in flist:
             if i.id == id:
@@ -353,9 +392,11 @@ class MapCreator(QMainWindow):
             self.StopSigns=pickle.load(f)
             for sign in self.StopSigns:
                 sign.pointsStopLane=[]
+            #self.DelIntersection()
             self.imageLabel.update()
             self.imageLabel.setScale(self.scaleFactor)
-
+            
+            
 
     def saveFunc(self):
         fileName, _ = QFileDialog.getSaveFileName(self, "Save Pickle file",
@@ -396,6 +437,140 @@ class MapCreator(QMainWindow):
         self.ComboNeighborReverseRight.clear() 
         self.ComboNeighborForwardRight.clear() 
         print(self.Neighbors)
+
+    def ccw(self,A,B,C):
+        return (C.y()-A.y()) * (B.x()-A.x()) > (B.y()-A.y()) * (C.x()-A.x())
+
+    # Return true if line segments AB and CD intersect
+    def intersect(self,A,B,C,D):
+       self.segment_endpoints = []
+       left = max(min(A.x(), B.x()), min(C.x(), D.x()))
+       right = min(max(A.x(), B.x()), max(C.x(), D.x()))
+       top = max(min(A.y(), B.y()), min(C.y(), D.y()))
+       bottom = min(max(A.y(), B.y()), max(C.y(), D.y()))
+        
+       if top > bottom or left > right:
+          self.segment_endpoints = []
+          return False
+        
+       elif top == bottom and left == right:
+          self.segment_endpoints.append(left)
+          self.segment_endpoints.append(top)
+          return True
+    
+       else:	
+          self.segment_endpoints.append(left)
+          self.segment_endpoints.append(bottom)
+          self.segment_endpoints.append(right)
+          self.segment_endpoints.append(top)         
+          return True
+    def setDisctBetweenpoints(self,first,sec,newpoint):
+        if abs(first.x()-sec.x())>abs(first.y()-sec.y()):
+            if first.x()-sec.x()>0:
+                newpoint.setY(first.y())
+                newpoint.setX(first.x()+1)
+            else:
+                newpoint.setY(first.y())
+                newpoint.setX(first.x()-1)
+        else:
+            if first.y()-sec.y()>0:
+                newpoint.setX(first.x())
+                newpoint.setY(first.y()+1)
+            else:
+                newpoint.setX(first.x())
+                newpoint.setY(first.y()-1)
+        return newpoint
+
+
+
+    def DelWhileIntersect(self,firstPoint, secondPoint,shapePred,isStart,isSucStart):
+        newpoints=[]
+        for i in shapePred:
+            newpoints.append(i)
+        print(newpoints)
+        maxI=0
+        if isStart:
+            for i in range(len(shapePred)):
+                if i+2<len(shapePred):
+                    if self.intersect(firstPoint, secondPoint,shapePred[i+1],shapePred[i+2]):
+                        maxI+=1
+                        print("DELDEL")
+                    else:
+                        maxI+=1
+                        break
+                
+                else:
+                    maxI+=1
+                    break
+            for i in range(maxI):
+                if len(newpoints)>2:
+                    print("DELDELDEL!")
+                    del newpoints[i]
+            if isSucStart:       
+                newpoints[0]=self.setDisctBetweenpoints(secondPoint, firstPoint,newpoints[0])
+            else:
+                newpoints[0]=self.setDisctBetweenpoints(firstPoint, secondPoint,newpoints[0])
+        if not isStart:
+            print(shapePred)
+            for i in range(len(shapePred),0,-1):
+                if i-2>0:
+                    if self.intersect(firstPoint, secondPoint,shapePred[i-1],shapePred[i-2]):
+                        maxI+=1
+                        print("DELDEL")
+                    else:
+                        maxI+=1
+                        break
+                else:
+                    maxI+=1
+                    break
+            for i in range(maxI):
+                if len(newpoints)>2:
+                    print("DELDELDEL!")
+                    del newpoints[i]
+            if isSucStart: 
+                newpoints[-1]=self.setDisctBetweenpoints(secondPoint, firstPoint,newpoints[-1])
+            else:
+                newpoints[-1]=self.setDisctBetweenpoints(firstPoint, secondPoint,newpoints[-1])
+        return newpoints
+
+    def DelIntersection(self):  
+        for rel in self.Relations:
+            try:
+                LaneSuc=self.imageLabel.shapes[rel.successor]
+                LanePred=self.imageLabel.shapes[rel.predecessor]
+            except:
+                continue
+            if LanePred.points is None or LaneSuc.points is None:
+                continue
+            print(LanePred.label)
+            print(LaneSuc.label)
+            print(LanePred.points)
+            print(LanePred.points[-1])
+            if (self.intersect(LaneSuc.points[0],LaneSuc.points[1],LanePred.points[0],LanePred.points[1])):
+                LanePred.points=self.DelWhileIntersect(LaneSuc.points[0],LaneSuc.points[1],LanePred.points,True,True)
+                print(LanePred.points)
+                print(self.imageLabel.shapes[rel.predecessor].points)
+                print("TrueTrue0101")
+            elif (self.intersect(LaneSuc.points[0],LaneSuc.points[1],LanePred.points[-1],LanePred.points[-2])):
+                LanePred.points=self.DelWhileIntersect(LaneSuc.points[0],LaneSuc.points[1],LanePred.points,False,True)
+                print(LanePred.points)
+                print(self.imageLabel.shapes[rel.predecessor].points)
+                print("TrueTrue01-1-2")
+            elif (self.intersect(LaneSuc.points[-1],LaneSuc.points[-2],LanePred.points[0],LanePred.points[1])):
+                LanePred.points=self.DelWhileIntersect(LaneSuc.points[-1],LaneSuc.points[-2],LanePred.points,True,False)
+                print(LanePred.points)
+                print(self.imageLabel.shapes[rel.predecessor].points)
+                print("TrueTrue-1-201")
+
+            elif (self.intersect(LaneSuc.points[-1],LaneSuc.points[-2],LanePred.points[-1],LanePred.points[-2])):
+                LanePred.points=self.DelWhileIntersect(LaneSuc.points[-1],LaneSuc.points[-2],LanePred.points,False,False)
+                print(LanePred.points)
+                print(self.imageLabel.shapes[rel.predecessor].points)
+                print("TrueTrue-1-2-1-2")
+
+            else:
+                print("False")
+    
 
     def createNeighborFunc(self):
         self.type=self.NEIGHBOR
@@ -728,6 +903,8 @@ class MapCreator(QMainWindow):
         self.type=self.NOTYPE
         overlap=self.findById(idOverlap,self.Overlaps)
         self.Overlaps.remove(overlap)
+    
+
 
     
     def createActions(self):
@@ -758,7 +935,9 @@ class MapCreator(QMainWindow):
         self.acceptjunction=QAction("&Create", self, enabled=True,
                 checkable=False,  triggered=self.acceptjunctionFunc)  
         self.getBezier=QAction("&Create Curve", self, enabled=True,
-                checkable=False,  triggered=self.getBezierFunc)      
+                checkable=False,  triggered=self.getBezierFunc)  
+        self.previewJunction=QAction("&Prewiev Curve", self, enabled=True,
+                checkable=False,  triggered=self.previewJunctionFunc)    
         self.load=QAction("&Load map", self, enabled=True,
                 checkable=False,  triggered=self.loadFunc)         
         self.createNeighbor=QAction("&Neighbor", self, enabled=True,
@@ -872,8 +1051,6 @@ if __name__ == '__main__':
     imageViewer =  qtmodern.windows.ModernWindow(MapCreator())
     imageViewer.setWindowIcon(QIcon('./static/icon.png'))
     imageViewer.show()
-
-
     sys.exit(app.exec_())
 
 

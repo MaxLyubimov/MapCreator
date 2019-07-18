@@ -300,7 +300,7 @@ class Lane(RoadObject):
         self.set_turn(lane_turn)
         self.set_type(lane_type)
         self.set_direction(direction)
-
+        
         path = LineString(points)
         p = path.interpolate(0)
         p2 = path.interpolate(0.5)

@@ -9,3 +9,5 @@ class Junction():
         self.borderLeft=[]
         self.borderRight=[]
         self.direction="FORWARD"
+        self.isLaneChange=False
+        self.turn=1
