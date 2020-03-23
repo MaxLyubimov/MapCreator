@@ -47,7 +47,7 @@ opencv_python == 4.0.0.21
 protobuf == 3.5.2.post1
 
 # create_import map.py: 1
-requests == 2.2.1
+requests == 2.20.0
 
 # create_import map.py: 7
 utm == 0.4.2
