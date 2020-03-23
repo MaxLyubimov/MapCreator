@@ -20,6 +20,7 @@ CURSOR_POINT = Qt.PointingHandCursor
 CURSOR_DRAW = Qt.CrossCursor
 CURSOR_MOVE = Qt.ClosedHandCursor
 CURSOR_GRAB = Qt.OpenHandCursor
+CURSOR_TRAJECTORY_CREATION=Qt.PointingHandCursor
 
 import matplotlib.pyplot as plt
 from shapely.geometry.polygon import LinearRing
@@ -44,6 +45,7 @@ class Canvas(QWidget):
         self.PixMap=QPixmap.fromImage(imQt).scaled(newWidth, newHeight)
         self.drawing=False
         self.scaleFactor=1
+        self.LaneUsingTrajectory=False
         self.currentLeft=None
         self.currentRight=None
         self._painter = QPainter()
@@ -55,6 +57,7 @@ class Canvas(QWidget):
         self.epsilon=11
         self.Ruler=None
         self.Preview=None
+        self.Trajectory=None
         self.visible = {}
         self.draggableIndex=None
         self.draggablePoint=None
@@ -79,6 +82,8 @@ class Canvas(QWidget):
         self.AddFlag=toolbar.addAction("Add Flag",self.AddFlagFunc)
         self.AddTurnLeft=toolbar.addAction("Add Turn Left",self.AddTurnLeftFunc)
         self.AddTurnRight=toolbar.addAction("Add Turn Rught",self.AddTurnRightFunc)
+        self.SetDottedBorder=toolbar.addAction("Set Dotted Border",self.SetDottedBorderFunc)
+        self.SetSolidBorder=toolbar.addAction("Set Solid Border",self.SetSolidBorderFunc)
         self.popMenu = QMenu(self)
         self.popMenu.addAction(self.deletePoint)
         self.popMenu.addAction(self.deleteLane)
@@ -86,6 +91,9 @@ class Canvas(QWidget):
         self.popMenu.addAction(self.AddFlag)
         self.popMenu.addAction(self.AddTurnLeft)
         self.popMenu.addAction(self.AddTurnRight)
+        self.popMenu.addAction(self.SetDottedBorder)
+        self.popMenu.addAction(self.SetSolidBorder)
+
         self.rightClickPos=-1
     
 
@@ -130,6 +138,19 @@ class Canvas(QWidget):
                 del self.shapes[key].points[index:index+1]
                 break
         self.update()
+    def SetDottedBorderFunc(self):
+        for key,shape in self.shapes.items():
+            index = shape.nearestVertex(self.rightClickPos, self.epsilon/self.scaleFactor)
+            if index is not None:
+                shape.type=Shape.DOTTED_WHITE
+
+
+    def SetSolidBorderFunc(self):
+        for key,shape in self.shapes.items():
+            index = shape.nearestVertex(self.rightClickPos, self.epsilon/self.scaleFactor)
+            if index is not None:
+                shape.type=Shape.SOLID_WHITE
+
 
     def DeleteLaneFunc(self):
         key1=0
@@ -174,9 +195,6 @@ class Canvas(QWidget):
         if isAdded:
             self.addPoints(shape)
 
-      
-
-
 
     def getBezierCurve (self,arr=None):
         isPrew=True
@@ -184,18 +202,16 @@ class Canvas(QWidget):
             isPrew=False
             arr=self.current.points
       
-        step = 5
+        step = 20
         res=[]
         res.append(self.current.points[0])
         step=int((float(step)/self.distance_between(arr[0],arr[2])))
         if step==0:
             step=1
-        if step>3:
-            step=3
-        for t in range(0, 10 , step):
-            k=float(t/10)
-            if k > 1:
-                k = 1
+ 
+        for t in range(0, 20 , step):
+            k=float(t/20)
+
             res.append(QPointF(0,0))
             for i in range(0, len(arr), 1):
                 b = self.getBezierBasis(i, len(arr) - 1, k)
@@ -323,7 +339,16 @@ class Canvas(QWidget):
         self.setToolTip("Click & drag to move point")
         self.setStatusTip(self.toolTip())
         self.update()
-  
+    def FindClosestPoint(self,pos):
+        point=min(self.Trajectory, key=lambda x:self.distance_between(x,pos))
+
+        if self.distance_between(point,pos)<6:
+            return point
+        else:
+            return None
+
+        
+
     def boundedMoveVertex(self, pos):
         index, shape = self.hVertex, self.hShape
         point = shape[index]
@@ -390,7 +415,18 @@ class Canvas(QWidget):
             x = det(d, xdiff) / div
             y = det(d, ydiff) / div
             return QPointF(x, y)
-
+    def AddPointsBeetween(self,pointStart,pointFinish):
+        try:
+            indexStart=self.Trajectory.points.index(pointStart)
+        except:
+            pointStart=self.FindClosestPoint(pointStart)
+            indexStart=self.Trajectory.points.index(pointStart)
+        try:
+            indexFinish=self.Trajectory.points.index(pointFinish)
+        except:
+            pointFinish=self.FindClosestPoint(pointFinish)
+            indexFinish=self.Trajectory.points.index(pointFinish)
+        return self.Trajectory.points[indexStart:indexFinish]
     def setHiding(self, enable=True):
         self._hideBackround = self.hideBackround if enable else False
     def mousePressEvent(self, event):
@@ -405,8 +441,19 @@ class Canvas(QWidget):
                 self.Ruler.addPoint(pos)
                     
             elif self.drawing:
-               
-                if  self.current is not None and self.current.shape_type==self.current.LANE:
+                if self.LaneUsingTrajectory==True:
+                    point=self.FindClosestPoint(pos)
+
+                    if point is not None:
+                        if len(self.current.points)==0 or len(self.current.points)>1:
+                            self.current.points.clear()
+                            self.current.addPoint(point)
+                        
+                        else:
+                            self.current.points=self.AddPointsBeetween(self.current.points[0],point)
+
+
+                elif  self.current is not None and self.current.shape_type==self.current.LANE:
                         self.current.addPoint(pos)
                 elif  self.current is not None and self.current.shape_type==self.current.JUNCTION:
                     if len(self.current.points)<3:
@@ -473,7 +520,8 @@ class Canvas(QWidget):
             # self.current.paint(painter) 
         if self.Preview is not None:
             self.Preview.paint(p)
-
+        if self.Trajectory is not None:
+            self.Trajectory.paint(p)
         if self.Ruler is not None and len(self.Ruler.points)>0:
             self.Ruler.scale=self.scaleFactor
             if len(self.Ruler.points)==2:
@@ -529,6 +577,8 @@ class Canvas(QWidget):
     def overrideCursor(self, cursor):
         self.restoreCursor()
         self._cursor = cursor
-        QApplication.setOverrideCursor(cursor)
+        if not self.LaneUsingTrajectory:
+            QApplication.setOverrideCursor(cursor)
     def restoreCursor(self):
-        QApplication.restoreOverrideCursor()
+        if not self.LaneUsingTrajectory:
+            QApplication.restoreOverrideCursor()

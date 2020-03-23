@@ -28,20 +28,20 @@ def clearList(self):
     counter=0
 
     for obj in self.Neighbors:
-        if not self.findById(obj.mainLane ,self.Lanes):
+        if not(self.findById(obj.mainLane ,self.Lanes) or self.findById(obj.mainLane ,self.Junctions) ):
             del self.Neighbors[counter]
-        elif obj.leftForward is not None and not  self.findById(obj.leftForward ,self.Lanes):
+        elif obj.leftForward is not None and not  (self.findById(obj.leftForward ,self.Lanes) or self.findById(obj.leftForward ,self.Junctions) ):
             del self.Neighbors[counter]
-        elif obj.leftReverse is not None and not  self.findById(obj.leftReverse ,self.Lanes):
+        elif obj.leftReverse is not None and not  (self.findById(obj.leftReverse ,self.Lanes) or self.findById(obj.leftReverse ,self.Junctions) ):
             del self.Neighbors[counter]
-        elif obj.RightForward is not None and not  self.findById(obj.RightForward ,self.Lanes):
+        elif obj.RightForward is not None and not  (self.findById(obj.RightForward ,self.Lanes) or self.findById(obj.RightForward ,self.Junctions) ):
             del self.Neighbors[counter]
-        elif obj.RightReverse is not None and not  self.findById(obj.RightReverse ,self.Lanes):
+        elif obj.RightReverse is not None and not  (self.findById(obj.RightReverse ,self.Lanes) or self.findById(obj.RightReverse ,self.Junctions) ):
             del self.Neighbors[counter]
         counter+=1
     counter=0
     for rel in self.Relations:
-        if not ((self.findById(rel.successor ,self.Lanes) or self.findById(rel.successor ,self.Junctions)) and  (self.findById(rel.predecessor ,self.Lanes) or self.findById(rel.predecessor,self.Junctions))):
+        if not ((self.findById(rel.successor ,self.Lanes) or self.findById(rel.successor ,self.Junctions))) or  not ((self.findById(rel.predecessor ,self.Lanes) or self.findById(rel.predecessor,self.Junctions))):
             del self.Relations[counter]
         counter+=1
     counter=0
@@ -159,6 +159,7 @@ def SaveTxt(self,filename):
 
     for obj in self.Lanes: 
         shape=None
+        
         if obj.id in self.imageLabel.shapes:
             shape=self.imageLabel.shapes[obj.id]
         else:
@@ -167,6 +168,16 @@ def SaveTxt(self,filename):
         shapeLeft=self.imageLabel.shapes[obj.id+"Left"]
         shapeRight=self.imageLabel.shapes[obj.id+"Right"]
         for point in shape.points:
+            print(point.x())
+            print(self.resizeFactorWidth)
+            print(self.geotiffScale)
+            print(Decimal(point.x())*(self.resizeFactorWidth*Decimal(self.geotiffScale)))
+            print("XXXX")
+            print(point.y())
+            print(self.resizeFactorWidth)
+            print(self.geotiffScale)
+            print(Decimal(point.y())*(self.resizeFactorWidth*Decimal(self.geotiffScale)))
+            print("YYYYYYYY")
             obj.points.append([Decimal(point.x())*(self.resizeFactorWidth*Decimal(self.geotiffScale)),Decimal(point.y())*(self.resizeFactorHeight*Decimal(self.geotiffScale))])
        
         for point in shapeLeft.points:
@@ -204,6 +215,7 @@ def SaveTxt(self,filename):
         obj.point=[Decimal(point.x())*(self.resizeFactorWidth*Decimal(self.geotiffScale)),Decimal(point.y())*(self.resizeFactorHeight*Decimal(self.geotiffScale))]
 
         for point in pointsLane:
+
             obj.pointsStopLane.append([Decimal(point.x())*(self.resizeFactorWidth*Decimal(self.geotiffScale)),Decimal(point.y())*(self.resizeFactorHeight*Decimal(self.geotiffScale))])
 
     for obj in self.StopSigns:
@@ -217,7 +229,7 @@ def SaveTxt(self,filename):
         for point in pointsLane:
             obj.pointsStopLane.append([Decimal(point.x())*(self.resizeFactorWidth*Decimal(self.geotiffScale)),Decimal(point.y())*(self.resizeFactorHeight*Decimal(self.geotiffScale))])
     gen=cr.BaseMapGeneration()
-
+    print(self.Neighbors)
     gen.start(self.Lanes,self.Junctions,self.Relations,self.Neighbors,self.Overlaps,self.Signals,self.StopSigns,self.offsetX,self.offsetY,self.rotation)
     for i in range(0,len(self.Overlaps)):
         self.Overlaps[i].pointOverlap=bufPoints[i]

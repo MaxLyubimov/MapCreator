@@ -8,3 +8,15 @@ pickle/
 settings\.pickle
 
 *.pyc
+
+map (copy)/
+
+Centres/
+
+trajectory/
+
+static/
+
+*.pickle
+
+2019-10-21-12_06_10_position.map

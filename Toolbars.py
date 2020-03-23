@@ -40,7 +40,7 @@ def CreateToolbars(self):
     self.ComboLaneBorderLeft.addItems(["SOLID_WHITE", "DOTTED_WHITE",
                         "CRUB", "SOLID_YELLOW", "DOTTED_YELLOW"])
 
-    self.EditLaneSpeed.setText("30")
+    self.EditLaneSpeed.setText("15")
     self.EditLaneWidth.setText("3")
     labelLeft=QLabel()
     labelLeft.setText("Left border type (blue)")
@@ -65,11 +65,16 @@ def CreateToolbars(self):
     self.ToolbarLane.addWidget(self.EditLaneWidth)
     self.ToolbarLane.addWidget(labelSpeed)
     self.ToolbarLane.addWidget(self.EditLaneSpeed)
+    self.useTrajecoryChk = QCheckBox("Use Trajectory for creation")
+    self.useTrajecoryChk.setChecked(False)
+    self.useTrajecoryChk.stateChanged.connect(self.CreateByTrajectoryChk_changed)
     self.ComboLaneTurn = QComboBox(self)
     self.ComboLaneTurn.addItems(["NO_TURN", "LEFT_TURN",
                         "RIGHT_TURN", "U_TURN"])
     self.ToolbarLane.addWidget( self.ComboLaneTurn)
+    self.ToolbarLane.addWidget(self.useTrajecoryChk)
     self.ToolbarLane.addAction(self.acceptRoad)
+
     self.ToolbarLane.setMovable(True)
 
     self.ToolbarLaneLeftRight = QToolBar()
@@ -102,9 +107,18 @@ def CreateToolbars(self):
     self.ComboJunctionTurn = QComboBox(self)
     self.ComboJunctionTurn.addItems(["NO_TURN", "LEFT_TURN",
                         "RIGHT_TURN", "U_TURN"])
+
+    labelSpeedJk=QLabel()
+    labelSpeedJk.setText("Speed")
+    self.EditLaneSpeedJk=QLineEdit()
+    self.EditLaneSpeedJk.setValidator(self.onlyInt)
+    self.ToolbarJunction.addWidget(labelSpeedJk)
+    self.ToolbarJunction.addWidget(self.EditLaneSpeedJk)
+    self.EditLaneSpeedJk.setText("10")
     self.ToolbarJunction.addWidget( self.ComboJunctionTurn)
     self.changelaneChk = QCheckBox("Lane Change")
     self.changelaneChk.setChecked(False)
+
     self.ToolbarJunction.addWidget(self.changelaneChk)
 
 

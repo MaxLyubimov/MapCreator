@@ -1,5 +1,5 @@
 # MapCreator
-This tool help to generate base_map.txt file which is the main component for map in the [Apollo](https://github.com/ApolloAuto/apollo) . We use prepared geotiff file our territory for map generation.  According to the file information there is a comparison of coordinates on the image with real coordinates. Accuracy of objects size depend on geotiff file. We use ``` gdalinfo ``` for information about geotiff file. 
+This tool help to generate base_import map.txt file which is the main component for map in the [Apollo](https://github.com/ApolloAuto/apollo) . We use prepared geotiff file our territory for map generation.  According to the file information there is a comparison of coordinates on the image with real coordinates. Accuracy of objects size depend on geotiff file. We use ``` gdalinfo ``` for information about geotiff file. 
 
 Information about our geotiff file
 ```

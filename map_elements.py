@@ -1,9 +1,9 @@
 #import cv2
 import math
 import numpy as np
-from map import map_road_pb2
-from map import map_lane_pb2
-from map import map_pb2
+from modules.map import map_road_pb2
+from modules.map import map_lane_pb2
+from modules.map import map_pb2
 from utils import distance
 import matplotlib.pyplot as plt
 from shapely.geometry import LineString, Polygon, Point
@@ -273,7 +273,7 @@ class Lane(RoadObject):
             prevrx, prevry, prevlx, prevly = rp[0], rp[1], lp[0], lp[1]
         return left_lane_x, right_lane_x, left_lane_y, right_lane_y
 
-    def convert(self, p, p2, distance, use_first=True):
+    def convert(self, p, p2, distance, use_first=True):#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
         delta_y = p2.y - p.y
         delta_x = p2.x - p.x
 
@@ -295,12 +295,13 @@ class Lane(RoadObject):
         return lp, rp
 
     def add(self, points, speed_limit, lane_turn, lane_type, direction, width, left_points,right_points,thresh):
+        
         self.set_length(points)
         self.set_speed_limit(speed_limit)
         self.set_turn(lane_turn)
         self.set_type(lane_type)
         self.set_direction(direction)
-        
+        print(points)
         path = LineString(points)
         p = path.interpolate(0)
         p2 = path.interpolate(0.5)
@@ -319,7 +320,9 @@ class Lane(RoadObject):
         right_lane_y = []
 
         left_lane_x, right_lane_x, left_lane_y, right_lane_y,lb_points,rb_points = self.lane_sampling(points, width, left_boundary, right_boundary, central_curve,left_points,right_points,thresh,False)
-
+        print(left_lane_x)
+        print(left_lane_y)
+        print("Point add")
         return left_lane_x, right_lane_x, left_lane_y, right_lane_y,lb_points,rb_points
 
 class Road(RoadObject):
@@ -328,6 +331,7 @@ class Road(RoadObject):
         super(Road, self).__init__(id)
         self.road = map.road.add()
         self.road.id.id = str(id)
+        self.road.type=2
 
     def getID(self):
         return self._id

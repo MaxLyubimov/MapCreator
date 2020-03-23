@@ -4,7 +4,7 @@
 
 
 
-from PyQt5.QtCore import QDir, Qt,QSize,QSettings,QRect,QEvent,QFile
+from PyQt5.QtCore import QDir, Qt,QSize,QSettings,QRect,QEvent,QFile,QPointF
 from PyQt5.QtGui import QImage, QPainter, QPalette, QPixmap, QPen,QIcon
 from PyQt5.QtWidgets import (QAction, QApplication, QFileDialog, QLabel,QToolBar,
         QMainWindow, QMenu, QMessageBox, QScrollArea, QSizePolicy,QVBoxLayout,QWidget,QFrame,QScrollBar,QHBoxLayout,QTextEdit)
@@ -15,6 +15,7 @@ import random
 import numpy as np
 from Canvas import Canvas
 import time 
+import math
 import os 
 from Objects.Shape import Shape
 from Objects.Lane import Lane 
@@ -54,6 +55,10 @@ class MapCreator(QMainWindow):
         if QFile.exists(self.fileSetings):
               with open(self.fileSetings, 'rb') as f:
                 self.offsetX,self.offsetY,self.rotation = pickle.load(f)
+                self.offsetX= 357745+4.9#403548.096-2.5#403543.852-1.3#Inno#357745+4.9#+2.35#357945#358258#4.6 
+                self.offsetY=  6181870+0.7#6188470.203-2#6188473.897-2#6185774.221#Inno#6181870+0.7#6180706#6181219
+                self.rotation=0#-0.0012
+                #self.offsetX,self.offsetY,self.rotation =  2.35,-1.75,2.0
         else: 
             self.offsetX,self.offsetY,self.rotation = 0,0,0
 
@@ -83,7 +88,8 @@ class MapCreator(QMainWindow):
     def open(self):
        
         fileName, _ = QFileDialog.getOpenFileName(self, "Open Geotiff File",
-                QDir.currentPath(),"tif (*.tif*);;TIFF (*.TIF*)")
+                 QDir.currentPath(),"tif (*.tif*);;TIFF (*.TIF*)")
+
         if fileName:
             dsr = gdal.Open(fileName)
             np_array = np.array(dsr.ReadAsArray())
@@ -92,6 +98,7 @@ class MapCreator(QMainWindow):
             np_array_uint8 = (np_array).astype(np.uint8)
 
             self.geotiffScale=dsr.GetGeoTransform()[1]
+            print(self.geotiffScale)
 
             self.setToAllBt(True)
             width,height=dsr.RasterXSize,dsr.RasterYSize
@@ -219,7 +226,25 @@ class MapCreator(QMainWindow):
         
         self.addToolBar(Qt.LeftToolBarArea,self.ToolbarLane)
         self.ToolbarLane.setVisible(True)  
+
+    def CreateByTrajectoryChk_changed(self, int):
+        if self.imageLabel is None:
+            return
+        if self.useTrajecoryChk.isChecked():
+            if self.imageLabel.Trajectory is None:
+                self.useTrajecoryChk.setChecked(False)
+                self.CreateErrorWindow("Load Trajectory","")
+                return
+            QApplication.setOverrideCursor(Qt.PointingHandCursor )
+            self.imageLabel.LaneUsingTrajectory=True
+            self.imageLabel.current.points.clear()
+        else:
+            QApplication.restoreOverrideCursor()
+            self.imageLabel.LaneUsingTrajectory=False
+
+
     def acceptRoadFunc(self):
+
         if len(self.imageLabel.current.points)==0:
             self.CreateErrorWindow("Add points","")
             return
@@ -227,7 +252,6 @@ class MapCreator(QMainWindow):
             self.CreateErrorWindow("Fill all field","")
             return
         self.setToAllBt(False)
-
         self.createLeftRight.setEnabled(True)    
         self.removeToolBar(self.ToolbarLane)
         self.Lanes[-1].width=int(float(self.EditLaneWidth.text().replace(",",".")))
@@ -278,9 +302,11 @@ class MapCreator(QMainWindow):
         for point in right:
             self.Junctions[-1].borderRight.append([Decimal(point.x())*(self.resizeFactorWidth*Decimal(self.geotiffScale)),Decimal(point.y())*(self.resizeFactorHeight*Decimal(self.geotiffScale))])
         self.Junctions[-1].turn=self.ComboJunctionTurn.currentIndex()
+        self.Junctions[-1].speed=int(float(self.EditLaneSpeedJk.text().replace(",",".")))
         self.imageLabel.currentLeft=None
         self.imageLabel.currentRight=None
         self.imageLabel.current=None
+
         if self.changelaneChk.isChecked():
             self.Junctions[-1].isLaneChange=True
         self.removeToolBar(self.ToolbarJunction)
@@ -361,6 +387,77 @@ class MapCreator(QMainWindow):
             if i.id == id:
                 return i
         return None
+
+    def shift(p, p2, distance, isleft=True):
+        delta_y = p2.y - p.y
+        delta_x = p2.x - p.x
+        # print math.atan2(delta_y, delta_x)
+        angle = 0
+        if isleft:
+            angle = math.atan2(delta_y, delta_x) + math.pi / 2.0
+        else:
+            angle = math.atan2(delta_y, delta_x) - math.pi / 2.0
+        # print angle
+        p1n = []
+        p1n.append(p.x + (math.cos(angle) * distance))
+        p1n.append(p.y + (math.sin(angle) * distance))
+
+        p2n = []
+        p2n.append(p2.x + (math.cos(angle) * distance))
+        p2n.append(p2.y + (math.sin(angle) * distance))
+        return Point(p1n), Point(p2n)
+    def rotate(self,x,y,xo,yo,theta): 
+        xr=math.cos(theta)*(x-xo)-math.sin(theta)*(y-yo)+xo
+        yr=math.sin(theta)*(x-xo)+math.cos(theta)*(y-yo)+yo
+        return [xr,yr]
+    def loadTrjecFunc(self):
+        if self.imageLabel is None:
+            self.open()
+        fileName, _ = QFileDialog.getOpenFileName(self, "Open Map file",
+                QDir.currentPath(),"Plain text file (*.chan)")
+        pointmas=[]
+        counter=0
+        with open(fileName, 'r') as f:
+            x=-1
+            y=-1
+            #for line in reversed(list(open(fileName))):
+            for line in f:
+                # if line.find("x")!=-1:
+                #     if counter<5:
+                #         continue
+                #     x=line.split(":")[1][:-1]
+                #     x=float(x)
+                # if line.find("y")!=-1:
+                #     if counter<5:
+                #         continue
+                #     y=line.split(":")[1][:-1]
+                #     y=float(y)
+                #     self.rotate(x,y,0,0,math.radians(-self.rotation))
+                #     point=QPointF(float(Decimal(float(x)+self.offsetX)/(Decimal(self.resizeFactorWidth)*Decimal(self.geotiffScale))),float(Decimal((float(y)*-1)+self.offsetY)/(Decimal(self.resizeFactorHeight)*Decimal(self.geotiffScale))))
+                #     pointmas.append(point)
+                    
+                # counter+=1
+                counter+=1
+                if counter<7:
+                    continue
+                counter=0
+   
+                xy=line.split(",")
+
+                xy=[float(xy[0]),float(xy[1])]#+6000000
+                xy=self.rotate(xy[0],xy[1],0,0,math.radians(-self.rotation))
+                point=QPointF(float(Decimal(float(xy[0])-self.offsetX)/(Decimal(self.resizeFactorWidth)*Decimal(self.geotiffScale))),float(Decimal((float(xy[1])*-1)+self.offsetY)/(Decimal(self.resizeFactorHeight)*Decimal(self.geotiffScale))))
+                print(point)
+                pointmas.append(point)
+
+
+            
+            self.imageLabel.Trajectory=Shape()
+            self.imageLabel.Trajectory.label="Trajectory"
+            self.imageLabel.Trajectory.points=pointmas
+            self.imageLabel.Trajectory.shape_type=self.imageLabel.Trajectory.TRAJECTORY
+    
+
     def loadFunc(self):# load objects from pickle file. 
         if self.imageLabel is None:
             self.open()
@@ -548,26 +645,12 @@ class MapCreator(QMainWindow):
             print(LanePred.points[-1])
             if (self.intersect(LaneSuc.points[0],LaneSuc.points[1],LanePred.points[0],LanePred.points[1])):
                 LanePred.points=self.DelWhileIntersect(LaneSuc.points[0],LaneSuc.points[1],LanePred.points,True,True)
-                print(LanePred.points)
-                print(self.imageLabel.shapes[rel.predecessor].points)
-                print("TrueTrue0101")
             elif (self.intersect(LaneSuc.points[0],LaneSuc.points[1],LanePred.points[-1],LanePred.points[-2])):
                 LanePred.points=self.DelWhileIntersect(LaneSuc.points[0],LaneSuc.points[1],LanePred.points,False,True)
-                print(LanePred.points)
-                print(self.imageLabel.shapes[rel.predecessor].points)
-                print("TrueTrue01-1-2")
             elif (self.intersect(LaneSuc.points[-1],LaneSuc.points[-2],LanePred.points[0],LanePred.points[1])):
                 LanePred.points=self.DelWhileIntersect(LaneSuc.points[-1],LaneSuc.points[-2],LanePred.points,True,False)
-                print(LanePred.points)
-                print(self.imageLabel.shapes[rel.predecessor].points)
-                print("TrueTrue-1-201")
-
             elif (self.intersect(LaneSuc.points[-1],LaneSuc.points[-2],LanePred.points[-1],LanePred.points[-2])):
                 LanePred.points=self.DelWhileIntersect(LaneSuc.points[-1],LaneSuc.points[-2],LanePred.points,False,False)
-                print(LanePred.points)
-                print(self.imageLabel.shapes[rel.predecessor].points)
-                print("TrueTrue-1-2-1-2")
-
             else:
                 print("False")
     
@@ -582,10 +665,17 @@ class MapCreator(QMainWindow):
         self.ComboNeighborForwardRight.clear()
         self.ComboNeighborReverseRight.clear()
         self.addObjsToComboBox(self.NeighborMainLanes,self.Lanes)
+        self.addObjsToComboBox(self.NeighborMainLanes,self.Junctions)
         self.addObjsToComboBox(self.ComboNeighborForwardLeft,self.Lanes)
         self.addObjsToComboBox(self.ComboNeighborReverseLeft,self.Lanes)
         self.addObjsToComboBox(self.ComboNeighborForwardRight,self.Lanes)
         self.addObjsToComboBox(self.ComboNeighborReverseRight,self.Lanes)
+
+        self.addObjsToComboBox(self.ComboNeighborForwardLeft,self.Junctions)
+        self.addObjsToComboBox(self.ComboNeighborReverseLeft,self.Junctions)
+        self.addObjsToComboBox(self.ComboNeighborForwardRight,self.Junctions)
+        self.addObjsToComboBox(self.ComboNeighborReverseRight,self.Junctions)
+
         self.addToolBar(Qt.LeftToolBarArea,self.ToolbarNeighbor)
         self.ToolbarNeighbor.setVisible(True)
         
@@ -725,7 +815,6 @@ class MapCreator(QMainWindow):
                         self.CreateErrorWindow("no intersection with the lane","")
                         return
 
-        print(self.Overlaps[-1].pointOverlap)
         self.type=self.NOTYPE
         self.Overlaps[-1].laneOverlapId=self.ComboOverlapLanes.currentText()   
         self.setToAllBt(True)
@@ -877,8 +966,7 @@ class MapCreator(QMainWindow):
         Neighbor=self.findById(idNeighbor,self.Neighbors)
         self.Neighbors.remove(Neighbor)
 
-    def delOverlapFunc(self):
-        
+    def delOverlapFunc(self):    
         self.setToAllBt(False)
         self.ComboDelOverlap.clear() 
         self.finishOverlapDeletion.setEnabled(True)
@@ -910,26 +998,20 @@ class MapCreator(QMainWindow):
     def createActions(self):
         self.openAct = QAction("&Open geotiff", self, shortcut="Ctrl+O",
                 triggered=self.open)
-
         self.exitAct = QAction("E&xit", self, shortcut="Ctrl+Q",
                 triggered=self.close)
-
         self.zoomInAct = QAction("Zoom &In (25%)", self, shortcut="Ctrl++",
                 enabled=False, triggered=self.zoomIn)
-
         self.zoomOutAct = QAction("Zoom &Out (25%)", self, shortcut="Ctrl+-",
                 enabled=False, triggered=self.zoomOut)
-
         self.createRoad = QAction("&Road", self, enabled=True,
                 checkable=False, triggered=self.createRoadFunc)
         self.acceptRoad = QAction("&Create", self, enabled=True,
                 checkable=False,  triggered=self.acceptRoadFunc)
         self.createLeftRight = QAction("&Create", self, enabled=True,
-                checkable=False,  triggered=self.createLeftRightFunc)
-               
+                checkable=False,  triggered=self.createLeftRightFunc)   
         self.save=QAction("&Save map", self, enabled=True,
                 checkable=False,  triggered=self.saveFunc)   
-       
         self.createjunction=QAction("&Junction", self, enabled=True,
                 checkable=False,  triggered=self.createjunctionFunc)     
         self.acceptjunction=QAction("&Create", self, enabled=True,
@@ -939,19 +1021,19 @@ class MapCreator(QMainWindow):
         self.previewJunction=QAction("&Prewiev Curve", self, enabled=True,
                 checkable=False,  triggered=self.previewJunctionFunc)    
         self.load=QAction("&Load map", self, enabled=True,
-                checkable=False,  triggered=self.loadFunc)         
+                checkable=False,  triggered=self.loadFunc)    
+        self.loadTrajectory=QAction("&Load trajectory", self, enabled=True,
+                checkable=False,  triggered=self.loadTrjecFunc)         
         self.createNeighbor=QAction("&Neighbor", self, enabled=True,
                 checkable=False,  triggered=self.createNeighborFunc) 
         self.acceptNeighbor=QAction("&Create", self, enabled=True,
                 checkable=False,  triggered=self.acceptNeighborFunc) 
-
         self.cancel=QAction("&Cancel", self, enabled=True,
                 checkable=False,  triggered=self.cancelFunc)
         self.createStopLane=QAction("&Stop Lane", self, enabled=True,
                 checkable=False,  triggered=self.createstopLaneFunc)         
         self.acceptStopLane=QAction("&Create", self, enabled=True,
                 checkable=False,  triggered=self.acceptstopLaneFunc)    
-
         self.createOverlap=QAction("&Overlap", self, enabled=True,
                 checkable=False,  triggered=self.createOverlapFunc)         
         self.acceptOverlap=QAction("&Create", self, enabled=True,
@@ -966,26 +1048,26 @@ class MapCreator(QMainWindow):
                 checkable=False,  triggered=self.acceptStopSignFunc) 
         self.chooseObject=QAction("&Create object", self, enabled=True,
                 checkable=False,  triggered=self.chooseObjectFunc)  
-
         self.ruler=QAction("&Ruler", self, enabled=True,
                 checkable=True,  triggered=self.rulerFunc)  
         self.offsets=QAction("&Offsets setting", self, enabled=True,
                 checkable=False,  triggered=self.offsetsFunc)  
-
         self.delNeighbor=QAction("&Del neighbor", self, enabled=True,
                 checkable=False,  triggered=self.delNeighborFunc)  
         self.finishNeighborDeletion=QAction("&Delete", self, enabled=True,
                 checkable=False,  triggered=self.finishNeighborDeletionFunc)
-
         self.delOverlap=QAction("&Del overlap", self, enabled=True,
                 checkable=False,  triggered=self.delOverlapFunc)  
         self.finishOverlapDeletion=QAction("&Delete", self, enabled=True,
                 checkable=False,  triggered=self.finishOverlapDeletionFunc)    
-        
+
+
+
     def createMenus(self):
         self.fileMenu = QMenu("&File", self)
         self.fileMenu.addAction(self.openAct)
         self.fileMenu.addAction(self.load)
+        self.fileMenu.addAction(self.loadTrajectory)
         self.fileMenu.addSeparator()
         self.fileMenu.addAction(self.save)
         self.fileMenu.addSeparator()
@@ -1006,6 +1088,8 @@ class MapCreator(QMainWindow):
         self.CreateToolbars()
         
     def setToAllBt(self,val):
+        self.useTrajecoryChk.setChecked(False)
+        self.CreateByTrajectoryChk_changed(0)
         self.createRoad.setEnabled(val)
         self.acceptRoad.setEnabled(val)
         self.createLeftRight.setEnabled(val)

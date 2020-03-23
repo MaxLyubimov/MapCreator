@@ -9,13 +9,13 @@ from map_elements import *
 import math
 from decimal import Decimal
 import numpy as np
-from map import map_road_pb2
-from map import map_pb2
-from map import map_lane_pb2
-from map import map_crosswalk_pb2
-from map import map_signal_pb2
-from map import map_overlap_pb2
-from map import map_stop_sign_pb2
+from modules.map import map_road_pb2
+from modules.map import map_pb2
+from modules.map import map_lane_pb2
+from modules.map import map_crosswalk_pb2
+from modules.map import map_signal_pb2
+from modules.map import map_overlap_pb2
+from modules.map import map_stop_sign_pb2
 from utils import distance
 from shapely.geometry import LineString, Polygon, Point
 import sys, json, numpy as np
@@ -70,6 +70,8 @@ class BaseMapGeneration():
 		
 		return road
 	def make_lanes(self,points, map, id1,  border,direction,speed,borderleft,borderright,neighbors,width,leftborderPoint,rightBorderPoints,turn,road):
+		if len(points)==0:
+			return None
 		lane = Lane(id1, map)
 		main_lane_x=[]
 		main_lane_y=[]
@@ -102,15 +104,18 @@ class BaseMapGeneration():
 			direction=map_lane_pb2.Lane.BACKWARD	
 		else:
 			direction=map_lane_pb2.Lane.BIDIRECTION
+		print(id1)
 		lane.add(mainPoints, speed, turn, map_lane_pb2.Lane.CITY_DRIVING,direction,width,leftborderPoint,rightBorderPoints,0.1)
 		road.add_road_boundary(leftPoints,map_road_pb2.BoundaryEdge.LEFT_BOUNDARY,1)
 		road.add_road_boundary(rightsPoints,map_road_pb2.BoundaryEdge.RIGHT_BOUNDARY,1)
-
-		borderleft=self.getBorderId(borderleft)
-		borderright=self.getBorderId(borderright)
+		print("MainPoints")
+		print(mainPoints)
+		##!!!Fix for DV 
+		borderleft1=self.getBorderId(borderright)
+		borderright1=self.getBorderId(borderleft)
 		if(border == True):
-			lane.set_left_lane_boundary_type(borderleft, False)
-			lane.set_right_lane_boundary_type(borderright, False)
+			lane.set_left_lane_boundary_type(borderleft1, False)
+			lane.set_right_lane_boundary_type(borderright1, False)
 		else:
 			lane.set_left_lane_boundary_type(UNKNOWN, True)
 			lane.set_right_lane_boundary_type(UNKNOWN, True)
@@ -131,7 +136,7 @@ class BaseMapGeneration():
 		counter=0
 		rotateangle=float(rotation)
 		x=float(offsetx)
-		y=float(offsety)
+		y=-float(offsety)
 		for record in overlaps:
 			overlap=Overlap(record.id,map)
 			if record.IdSecObject.find("stopsign")!=-1:		
@@ -151,17 +156,21 @@ class BaseMapGeneration():
 				self.make_arr(lanes.rightBorderPoints,lanesxy_right)
 				for i in range(len(lanesxy)):
 					lanesxy[i]=self.rotate(lanesxy[i][0],lanesxy[i][1],0,0,math.radians(rotateangle) )
-					lanesxy[i][1]+=y
+					lanesxy[i][1]-=y
 					lanesxy[i][0]+=x
+					print(lanesxy)
+					print("lanesxy")
 				for i in range(len(lanesxy_left)):
 					lanesxy_left[i]=self.rotate(lanesxy_left[i][0],lanesxy_left[i][1],0,0,math.radians(rotateangle) )
-					lanesxy_left[i][1]+=y
+					lanesxy_left[i][1]-=y
 					lanesxy_left[i][0]+=x
 				for i in range(len(lanesxy_right)):
 					lanesxy_right[i]=self.rotate(lanesxy_right[i][0],lanesxy_right[i][1],0,0,math.radians(rotateangle) )
-					lanesxy_right[i][1]+=y
+					lanesxy_right[i][1]-=y
 					lanesxy_right[i][0]+=x
 				l = self.make_lanes(lanesxy, map, lanes.id, True,lanes.direction,int(lanes.speed),lanes.idLeftBorder,lanes.idRightBorder,lanes.Neighbors,float(lanes.width),lanesxy_left,lanesxy_right,lanes.turn,road)
+				if l is None:
+					continue
 				self.addRelations(relations,l)
 				self.addNeighbors(neighbors,l)
 				self.addOverlaps(overlaps,l)
@@ -179,20 +188,22 @@ class BaseMapGeneration():
 			road=self.createRoad(map,"road_"+str(counter))
 			self.make_arr(junction.points,lanesxy)
 			for i in range(len(lanesxy)):
+	
 				lanesxy[i]=self.rotate(lanesxy[i][0],lanesxy[i][1],0,0,math.radians(rotateangle) )
-				lanesxy[i][1]+=y
+				lanesxy[i][1]-=y
 				lanesxy[i][0]+=x
 			lanesxy_left = []
 			self.make_arr(junction.borderLeft,lanesxy_left)
 			for i in range(len(lanesxy_left)):
 				lanesxy_left[i]=self.rotate(lanesxy_left[i][0],lanesxy_left[i][1],0,0,math.radians(rotateangle) )
-				lanesxy_left[i][1]+=y
+				lanesxy_left[i][1]-=y
 				lanesxy_left[i][0]+=x
 			lanesxy_right = []
 			self.make_arr(junction.borderRight,lanesxy_right)
 			for i in range(len(lanesxy_right)):
+
 				lanesxy_right[i]=self.rotate(lanesxy_right[i][0],lanesxy_right[i][1],0,0,math.radians(rotateangle) )
-				lanesxy_right[i][1]+=y
+				lanesxy_right[i][1]-=y
 				lanesxy_right[i][0]+=x
 	
 
@@ -201,6 +212,7 @@ class BaseMapGeneration():
 		
 			self.addOverlaps(overlaps,l)
 			self.addRelations(relations,l)
+			self.addNeighbors(neighbors,l)
 		for stopsign in stopsigns: 
 			st=StopLane(stopsign.id,map)
 			points=[]

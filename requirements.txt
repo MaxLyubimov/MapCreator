@@ -7,20 +7,20 @@ Pillow == 5.1.0
 
 # Canvas.py: 25
 # Save.py: 10
-# create_map.py: 20
+# create_import map.py: 20
 # map_elements.py: 9
 # utils.py: 5
 Shapely == 1.6.4.post2
 
 # Canvas.py: 24
-# create_map.py: 5
+# create_import map.py: 5
 # map_elements.py: 8
 matplotlib == 2.2.2
 
 # Canvas.py: 10
 # MapCreator.py: 15
 # Objects/Shape.py: 6
-# create_map.py: 6,11,21
+# create_import map.py: 6,11,21
 # map_elements.py: 3
 # utils.py: 3
 numpy == 1.16.0
@@ -46,10 +46,10 @@ opencv_python == 4.0.0.21
 # map/map_yield_sign_pb2.py: 6,7,8,9,10
 protobuf == 3.5.2.post1
 
-# create_map.py: 1
+# create_import map.py: 1
 requests == 2.2.1
 
-# create_map.py: 7
+# create_import map.py: 7
 utm == 0.4.2
 
 pyqt5

@@ -11,6 +11,7 @@ DEFAULT_LINE_COLOR_LEFT = QColor(0, 0, 220, 128)
 DEFAULT_LINE_COLOR_RIGHT = QColor(20, 200, 20, 128)
 DEFAULT_LINE_COLOR = QColor(220, 0, 0, 128)
 DEFAULT_PREVIEW_COLOR = QColor(123, 0, 200, 50)
+DEFAULT_TRAJECTORY_COLOR = QColor(223, 233, 0, 250)
 DEFAULT_STOPLINE_COLOR = QColor(220, 220, 0, 128)
 DEFAULT_FILL_COLOR = QColor(255, 0, 0, 10)
 DEFAULT_SELECT_LINE_COLOR = QColor(255, 255, 255)
@@ -21,7 +22,7 @@ DEFAULT_HVERTEX_FILL_COLOR = QColor(255, 0, 0)
 
 class Shape(object):
     P_SQUARE, P_ROUND = range(2)
-    LANE,BORDER,JUNCTION,STOPLANE,OVERLAP,SIGNAL,STOPSIGN,RULER,PREVIEW = range(9)
+    LANE,BORDER,JUNCTION,STOPLANE,OVERLAP,SIGNAL,STOPSIGN,RULER,PREVIEW,TRAJECTORY = range(10)
     MOVE_VERTEX, NEAR_VERTEX = range(2)
     SOLID_WHITE,DOTTED_WHITE,CRUB,SOLID_YELLOW,DOTTED_YELLOW=range(5)
     line_color = DEFAULT_LINE_COLOR
@@ -111,6 +112,8 @@ class Shape(object):
         color = self.select_line_color if self.selected else self.line_color
         if self.shape_type==self.PREVIEW:
            color=DEFAULT_PREVIEW_COLOR
+        if self.shape_type==self.TRAJECTORY:
+            color=DEFAULT_TRAJECTORY_COLOR
         if self.shape_type==self.STOPLANE:
             color=DEFAULT_STOPLINE_COLOR
         if self.label.find("Left")!=-1:
@@ -123,7 +126,10 @@ class Shape(object):
             pen.setDashPattern([5, 5, 5, 5])
 
         # Try using integer sizes for smoother drawing(?)
+
         pen.setWidth(max(1, int(round(3.0 / self.scale))))
+        if self.shape_type==self.TRAJECTORY:
+            pen.setWidth(max(1, int(round(1.0 / self.scale))))
         painter.setPen(pen)
 
         line_path = QPainterPath()
@@ -140,9 +146,9 @@ class Shape(object):
                 self.drawVertex(vrtx_path, i)
         
         painter.drawPath(line_path)
-       
-        painter.drawPath(vrtx_path)
-        painter.fillPath(vrtx_path, self.vertex_fill_color)
+        if self.shape_type!=self.TRAJECTORY:
+            painter.drawPath(vrtx_path)
+            painter.fillPath(vrtx_path, self.vertex_fill_color)
         fontScale=12/self.scale
         if fontScale<2:fontScale=2
         if self.label is not None:
@@ -163,6 +169,8 @@ class Shape(object):
 
     def drawVertex(self, path, i):
         d = self.point_size / self.scale
+        if self.shape_type==self.TRAJECTORY:
+            d=3/self.scale
         shape = self.point_type
         point = self.points[i]
 
