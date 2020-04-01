@@ -104,12 +104,9 @@ class BaseMapGeneration():
 			direction=map_lane_pb2.Lane.BACKWARD	
 		else:
 			direction=map_lane_pb2.Lane.BIDIRECTION
-		print(id1)
 		lane.add(mainPoints, speed, turn, map_lane_pb2.Lane.CITY_DRIVING,direction,width,leftborderPoint,rightBorderPoints,0.1)
 		road.add_road_boundary(leftPoints,map_road_pb2.BoundaryEdge.LEFT_BOUNDARY,1)
 		road.add_road_boundary(rightsPoints,map_road_pb2.BoundaryEdge.RIGHT_BOUNDARY,1)
-		print("MainPoints")
-		print(mainPoints)
 		##!!!Fix for DV 
 		borderleft1=self.getBorderId(borderright)
 		borderright1=self.getBorderId(borderleft)
@@ -158,8 +155,6 @@ class BaseMapGeneration():
 					lanesxy[i]=self.rotate(lanesxy[i][0],lanesxy[i][1],0,0,math.radians(rotateangle) )
 					lanesxy[i][1]-=y
 					lanesxy[i][0]+=x
-					print(lanesxy)
-					print("lanesxy")
 				for i in range(len(lanesxy_left)):
 					lanesxy_left[i]=self.rotate(lanesxy_left[i][0],lanesxy_left[i][1],0,0,math.radians(rotateangle) )
 					lanesxy_left[i][1]-=y
@@ -181,8 +176,6 @@ class BaseMapGeneration():
 				continue
 			if junction.points is None:
 				continue
-			print(junction.id)
-			print(junction.points)
 			lanesxy = []
 			counter+=1
 			road=self.createRoad(map,"road_"+str(counter))
@@ -231,7 +224,7 @@ class BaseMapGeneration():
 				points[i]=self.rotate(points[i][0],points[i][1],0,0,math.radians(rotateangle) )
 				points[i][1]+=y
 				points[i][0]+=x
-			signal.point=self.rotate(signal.point[0],signal.point[1],0,0,math.radians(-rotateangle) )
+			signal.point=self.rotate(float(signal.point[0]),float(signal.point[1]),0,0,math.radians(rotateangle) )
 			signal.point[1]+=y
 			signal.point[0]+=x
 			signal.point=[float(signal.point[0]),float(signal.point[1])]

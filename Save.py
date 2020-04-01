@@ -87,27 +87,7 @@ def SaveTxt(self,filename):
         pickle.dump((self.offsetX,self.offsetY,self.rotation),f)
     bufPoints=[]
 
-    for obj in self.Overlaps:
-        point=obj.pointOverlap
-        print(point)
-        Lanepoints=self.findById(obj.laneOverlapId,self.Lanes)
-        if Lanepoints is None:
-            Lanepoints=self.findById(obj.laneOverlapId,self.Junctions)
-            shape=None
-            if Lanepoints.id in self.imageLabel.shapes:
-                shape=self.imageLabel.shapes[obj.id]
-                if shape.LaneChange:
-                    obj.laneOverlapId=obj.laneOverlapId.replace("junction","laneChange")
-            else:
-                continue
-        Lanepoints=Lanepoints.points
-        pointMap=[Decimal(point.x())*(self.resizeFactorWidth*Decimal(self.geotiffScale)),Decimal(point.y())*(self.resizeFactorHeight*Decimal(self.geotiffScale))]
-        Lanepoints.insert(1, pointMap)
-        line = LineString(Lanepoints[:2])
-        Lanepoints.remove(pointMap)
-        dist = line.length
-        bufPoints.append(obj.pointOverlap)
-        obj.pointOverlap=dist
+    
     for obj in self.Relations:
         if obj.predecessor.find("junction")!=-1:
             shape=None
@@ -200,13 +180,30 @@ def SaveTxt(self,filename):
         for point in shape.points:
             obj.points.append([Decimal(point.x())*(self.resizeFactorWidth*Decimal(self.geotiffScale)),Decimal(point.y())*(self.resizeFactorHeight*Decimal(self.geotiffScale))])
    
-    
+    for obj in self.Overlaps:
+        point=obj.pointOverlap
+        Lanepoints=self.findById(obj.laneOverlapId,self.Lanes)
+        if Lanepoints is None:
+            Lanepoints=self.findById(obj.laneOverlapId,self.Junctions)
+            shape=None
+            if Lanepoints.id in self.imageLabel.shapes:
+                shape=self.imageLabel.shapes[obj.id]
+                if shape.LaneChange:
+                    obj.laneOverlapId=obj.laneOverlapId.replace("junction","laneChange")
+            else:
+                continue
+        Lanepoints=Lanepoints.points
+        pointMap=[Decimal(point.x())*(self.resizeFactorWidth*Decimal(self.geotiffScale)),Decimal(point.y())*(self.resizeFactorHeight*Decimal(self.geotiffScale))]
+        Lanepoints.insert(1, pointMap)
+        line = LineString(Lanepoints[:2])
+        Lanepoints.remove(pointMap)
+        dist = line.length
+        bufPoints.append(obj.pointOverlap)
+        obj.pointOverlap=dist
     for obj in self.Signals:
         point=None
         if obj.id in self.imageLabel.shapes or obj.idStopLane in self.imageLabel.shapes:
             point=self.imageLabel.shapes[obj.id].points[0]
-            print(self.imageLabel.shapes[obj.id].points)
-            print(obj.id)
         else:
             self.Signals.remove(obj)
             continue
@@ -229,7 +226,6 @@ def SaveTxt(self,filename):
         for point in pointsLane:
             obj.pointsStopLane.append([Decimal(point.x())*(self.resizeFactorWidth*Decimal(self.geotiffScale)),Decimal(point.y())*(self.resizeFactorHeight*Decimal(self.geotiffScale))])
     gen=cr.BaseMapGeneration()
-    print(self.Neighbors)
     gen.start(self.Lanes,self.Junctions,self.Relations,self.Neighbors,self.Overlaps,self.Signals,self.StopSigns,self.offsetX,self.offsetY,self.rotation)
     for i in range(0,len(self.Overlaps)):
         self.Overlaps[i].pointOverlap=bufPoints[i]
