@@ -38,7 +38,7 @@ def CreateToolbars(self):
     self.EditLaneWidth.setValidator(self.onlyFloat)
     self.ComboLaneBorderLeft = QComboBox(self)
     self.ComboLaneBorderLeft.addItems(["SOLID_WHITE", "DOTTED_WHITE",
-                        "CRUB", "SOLID_YELLOW", "DOTTED_YELLOW"])
+                        "CURB", "SOLID_YELLOW", "DOTTED_YELLOW"])
 
     self.EditLaneSpeed.setText("15")
     self.EditLaneWidth.setText("3")
@@ -49,7 +49,7 @@ def CreateToolbars(self):
     labelRight.setText("Right border type (green)")
     self.ComboLaneBorderRight = QComboBox(self)
     self.ComboLaneBorderRight.addItems(["SOLID_WHITE", "DOTTED_WHITE",
-                        "CRUB", "SOLID_YELLOW", "DOTTED_YELLOW"])
+                        "CURB", "SOLID_YELLOW", "DOTTED_YELLOW"])
 
     labelWidth=QLabel()
     labelWidth.setText("Width")
