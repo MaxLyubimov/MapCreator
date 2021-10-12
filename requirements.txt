@@ -26,7 +26,7 @@ matplotlib == 2.2.2
 numpy == 1.16.0
 
 # utils.py: 1
-opencv_python == 4.0.0.21
+opencv_python == 4.2.0.32
 
 # map/geometry_pb2.py: 6,7,8,9,10
 # map/map_clear_area_pb2.py: 6,7,8,9,10
