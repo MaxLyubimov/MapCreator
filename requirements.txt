@@ -44,7 +44,7 @@ opencv_python == 4.0.0.21
 # map/map_speed_control_pb2.py: 6,7,8,9,10
 # map/map_stop_sign_pb2.py: 6,7,8,9,10
 # map/map_yield_sign_pb2.py: 6,7,8,9,10
-protobuf == 3.5.2.post1
+protobuf == 3.15.0
 
 # create_import map.py: 1
 requests == 2.2.1
