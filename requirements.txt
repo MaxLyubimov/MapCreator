@@ -3,7 +3,7 @@
 
 # Canvas.py: 8
 # MapCreator.py: 13
-Pillow == 5.1.0
+Pillow == 9.0.1
 
 # Canvas.py: 25
 # Save.py: 10
