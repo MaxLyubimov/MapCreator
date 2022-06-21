@@ -23,7 +23,7 @@ matplotlib == 2.2.2
 # create_import map.py: 6,11,21
 # map_elements.py: 3
 # utils.py: 3
-numpy == 1.16.0
+numpy == 1.22.0
 
 # utils.py: 1
 opencv_python == 4.0.0.21
